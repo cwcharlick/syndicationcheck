@@ -220,6 +220,7 @@ function App() {
                     style={{
                       color: "red",
                       backgroundColor:
+                        info &&
                         match.displayBrandName === info.displayBrandName &&
                         match.syndicatingMerchantGroup ===
                           info.syndicatingMerchantGroup
