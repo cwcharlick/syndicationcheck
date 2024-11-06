@@ -4,7 +4,7 @@ import "./App.css";
 
 function App() {
   const [syndicationMatches, setSyndicationMatches] = useState([]);
-  const [brandMerchantManual, setBrandMerchantManual] = useState({});
+  const [groupBy, setGroupBy] = useState("syndicatingBrand");
   const [selectedAlert, setSelectedAlert] = useState("amber");
   const [sortBy, setSortBy] = useState("");
   const [info, setInfo] = useState(null);
@@ -41,10 +41,13 @@ function App() {
   const uniqueBrandMerchantGroupMatch = [];
 
   syndicationMatches.forEach((el) => {
+    if (el.pageId === "") return;
+
     const exists = uniqueBrandMerchantGroupMatch.find(
       (unique) =>
         unique.displayBrandName === el.displayBrandName &&
-        unique.syndicatingMerchantGroup === el.syndicatingMerchantGroup
+        unique.syndicatingMerchantGroup === el.syndicatingMerchantGroup &&
+        unique.syndicatingBrandName === el.syndicatingBrandName
     );
 
     const newUnique = exists
@@ -52,6 +55,7 @@ function App() {
       : {
           displayBrandName: el.displayBrandName,
           syndicatingMerchantGroup: el.syndicatingMerchantGroup,
+          syndicatingBrandName: el.syndicatingBrandName,
           alert: "amber",
         };
 
@@ -59,58 +63,21 @@ function App() {
 
     // amber, undefined. green, probably fine. red, needs checking. verified, human.
     if (!el.syndicatingMerchantGroup) return;
-    const merchantGroupWords = el.syndicatingMerchantGroup.split(" ");
-    const biggestMerchantGroupWord = merchantGroupWords.reduce(
-      (a, v) => (v.length > a.length ? v : a),
-      merchantGroupWords[0]
-    );
-    let potentialMGWMatches = merchantGroupWords.filter((el) => el.length > 3);
 
-    if (potentialMGWMatches.length === 0)
-      potentialMGWMatches = [biggestMerchantGroupWord];
-
-    const brandNameWords = el.displayBrandName.split(" ");
-    const biggestBrandNameWord = brandNameWords.reduce(
-      (a, v) => (v.length > a.length ? v : a),
-      brandNameWords[0]
-    );
-    let potentialBNWMatches = brandNameWords.filter((el) => el.length > 3);
-
-    if (potentialBNWMatches.length === 0)
-      potentialBNWMatches = [biggestBrandNameWord];
-
-    const productNameWords = el.productName.split(" ");
-    const biggestProductNameWord = productNameWords.reduce(
-      (a, v) => (v.length > a.length ? v : a),
-      productNameWords[0]
-    );
-    let potentialPNWMatches = productNameWords.filter((el) => el.length > 3);
-
-    if (potentialPNWMatches.length === 0)
-      potentialPNWMatches = [biggestProductNameWord];
-
-    potentialMGWMatches.forEach((p) => {
-      if (el.displayBrandName.toUpperCase().includes(p.toUpperCase()))
-        newUnique.alert = "green";
-
-      if (el.productName.toUpperCase().includes(p.toUpperCase()))
-        newUnique.alert = "green";
-
-      if (el.displayCategoryName.toUpperCase().includes(p.toUpperCase()))
-        newUnique.alert = "green";
-    });
-
-    potentialBNWMatches.forEach((p) => {
-      if (el.syndicatingMerchantGroup.toUpperCase().includes(p.toUpperCase()))
-        newUnique.alert = "green";
-      if (el.syndicatingBrandName.toUpperCase().includes(p.toUpperCase()))
-        newUnique.alert = "green";
-    });
-
-    potentialPNWMatches.forEach((p) => {
-      if (el.syndicatingProductName.toUpperCase().includes(p.toUpperCase()))
-        newUnique.alert = "green";
-    });
+    if (
+      compareStrings(el.displayBrandName, el.syndicatingBrandName) ||
+      compareStrings(el.displayBrandName, el.syndicatingProductName) ||
+      compareStrings(el.displayBrandName, el.syndicatingMerchantGroup) ||
+      compareStrings(el.productName, el.syndicatingProductName) ||
+      compareStrings(el.productName, el.syndicatingBrandName) ||
+      compareStrings(el.productName, el.syndicatingMerchantGroup) ||
+      compareStrings(el.brandName, el.syndicatingMerchantGroup) ||
+      compareStrings(el.productName, el.syndicatingPageId)
+    ) {
+      newUnique.alert = "green";
+    } else {
+      newUnique.alert = "amber";
+    }
   });
 
   const counts = { red: 0, amber: 0, green: 0, verified: 0 };
@@ -161,8 +128,6 @@ function App() {
     }
   });
 
-  console.log(filteredMatches);
-
   return (
     <>
       <div className="section" style={{ flex: "none", paddingRight: 40 }}>
@@ -183,6 +148,7 @@ function App() {
             <input type="file" accept=".csv" onChange={handleChangeFile} />
           </li>
         </ol>
+
         <div>
           <button
             onClick={() => setSelectedAlert("amber")}
@@ -206,7 +172,10 @@ function App() {
           <tr style={{ fontWeight: 700, fontSize: "1rem" }}>
             <td />
             <td>
-              <button onClick={() => setSortBy("brand")}>Brand Name</button>
+              <button onClick={() => setSortBy("brand")}>Local Brand</button>
+            </td>
+            <td>
+              <button onClick={() => setSortBy("brand")}>Syn Brand</button>
             </td>
             <td>
               <button onClick={() => setSortBy("mg")}>Syn MG</button>
@@ -221,6 +190,8 @@ function App() {
                       color: "red",
                       backgroundColor:
                         info &&
+                        match.syndicatingBrandName ===
+                          info.syndicatingBrandName &&
                         match.displayBrandName === info.displayBrandName &&
                         match.syndicatingMerchantGroup ===
                           info.syndicatingMerchantGroup
@@ -241,6 +212,7 @@ function App() {
                   </span>
                 </td>
                 <td>{match.displayBrandName}</td>
+                <td>{match.syndicatingBrandName}</td>
                 <td>{match.syndicatingMerchantGroup}</td>
               </tr>
             );
@@ -252,7 +224,9 @@ function App() {
           info={syndicationMatches.filter(
             (match) =>
               match.displayBrandName === info.displayBrandName &&
-              match.syndicatingMerchantGroup === info.syndicatingMerchantGroup
+              match.syndicatingMerchantGroup ===
+                info.syndicatingMerchantGroup &&
+              match.syndicatingBrandName === info.syndicatingBrandName
           )}
         />
       )}
@@ -312,6 +286,29 @@ const InfoItem = ({ info }) => {
       </li>
     </ul>
   );
+};
+
+const compareStrings = (stringA, stringB) => {
+  if (!stringA || !stringB) return false;
+  return wordMatch(stringA, stringB) || wordMatch(stringB, stringA);
+};
+
+const wordMatch = (stringA, stringB) => {
+  const stringAWords = stringA.split(" ");
+  const biggestStringAWord = stringAWords.reduce(
+    (a, v) => (v.length > a.length ? v : a),
+    stringAWords[0]
+  );
+  let stringAFilteredWords = stringAWords.filter((el) => el.length > 3);
+  if (stringAFilteredWords.length === 0)
+    stringAFilteredWords = [biggestStringAWord];
+
+  for (let i = 0; i < stringAFilteredWords.length; i++) {
+    if (stringB.toUpperCase().includes(stringAFilteredWords[i].toUpperCase()))
+      return true;
+  }
+
+  return false;
 };
 
 export default App;
