@@ -5,6 +5,7 @@ import { CSVLink } from "react-csv";
 export default function SimpleDownload({ syndicationMatches, info, setInfo }) {
   const [selectedAlert, setSelectedAlert] = useState("amber");
   const [sortBy, setSortBy] = useState("");
+  const [loading, setLoading] = useState();
 
   const csvHeaders = [
     { label: "Tesco TPNB", key: "pageId" },
@@ -81,7 +82,6 @@ export default function SimpleDownload({ syndicationMatches, info, setInfo }) {
   const uniqueRows = [];
 
   filteredMatches.forEach((m, i) => {
-    console.log(i);
     m.productCheck = "failed";
     m.productCheckReason = "missmatch";
     if (
