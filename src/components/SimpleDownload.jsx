@@ -97,11 +97,17 @@ export default function SimpleDownload({ syndicationMatches, info, setInfo }) {
 
   console.log(filteredMatches);
 
+  const showDownload = uniqueRows.length > 0 ? true : false;
+
   return (
     <>
-      <CSVLink data={uniqueRows} headers={csvHeaders}>
-        Download
-      </CSVLink>
+      {showDownload ? (
+        <CSVLink data={uniqueRows} headers={csvHeaders}>
+          Download
+        </CSVLink>
+      ) : (
+        "Waiting for data"
+      )}
     </>
   );
 }
